@@ -3,14 +3,10 @@ Course: CSE 251
 Lesson Week: 01 - Team Acvitiy
 File: team.py
 Author: Brother Comeau
-
 Purpose: Find prime numbers
-
 Instructions:
-
 - Don't include any other Python packages or modules
 - Review team activity details in I-Learn
-
 """
 
 from datetime import datetime, timedelta
@@ -51,17 +47,32 @@ if __name__ == '__main__':
     # TODO 2) move the following for loop into 1 thread
     # TODO 3) change the program to divide the for loop into 10 threads
 
+
+    """
     start = 10000000000
     range_count = 100000
-    for i in range(start, start + range_count):
-        if is_prime(i):
-            prime_count += 1
-            print(i, end=', ', flush=True)
-    print(flush=True)
+    """
+
+    # thread function
+    def find_primes(start, range_count):
+        global prime_count
+        for i in range(start, start + range_count):
+            if is_prime(i):
+                prime_count += 1
+                print(i, end=', ', flush=True)
+        print(flush=True)
+    
+    # make threads
+    t1 = threading.Thread(target=find_primes, args=(10000000000, 100000))
+
+    # run threads
+    t1.start()
+
+    # gather threads
+    t1.join()
+
 
     # Should find 4306 primes
     log.write(f'Numbers processed = {numbers_processed}')
     log.write(f'Primes found      = {prime_count}')
     log.stop_timer('Total time')
-
-
