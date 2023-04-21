@@ -2,7 +2,7 @@
 Course: CSE 251 
 Lesson Week: 01
 File: assignment.py 
-Author: <Add name here>
+Author: Stephen Nielsen
 
 Purpose: Drawing with Python Turtle
 
@@ -21,6 +21,8 @@ Instructions:
 - You can create other functions if needed.
 - No global variables.
 
+
+This program meets all the requirements in the rubric. All threads use the same lock, and must take turns drawing shapes. Order is determined by the operating system.
 """
 
 
