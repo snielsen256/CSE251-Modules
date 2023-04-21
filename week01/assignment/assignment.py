@@ -121,6 +121,24 @@ def draw_rectangles(tur):
         for y in range(-300, 350, 200):
             draw_rectangle(tur, x-10, y+5, 20, 15)
 
+def draw_shape(tur, shape_type, lock):
+    """Creates a lock bottleneck for the threads"""
+
+    for x in range(-300, 350, 200):
+        for y in range(-300, 350, 200):
+            lock.acquire()
+            match shape_type:
+                case "squares":
+                    draw_square(tur, x - 50, y + 50, 100)
+                case "circles":
+                    draw_circle(tur, x, y-2, 50)
+                case "triangles":
+                    draw_triangle(tur, x-30, y-30+10, 60)
+                case "rectangles":
+                    draw_rectangle(tur, x-10, y+5, 20, 15)
+            lock.release()
+
+
 
 def run_no_threads(tur, log, main_turtle):
     """Draw different shapes without using threads"""
@@ -171,6 +189,26 @@ def run_with_threads(tur, log, main_turtle):
     # TODO - Start add your code here.
     # You need to use 4 threads where each thread concurrently drawing one type of shape.
     # You are free to change any functions in this code except main()
+
+    lock = threading.Lock()
+
+    t_squares = threading.Thread(target=draw_shape, args=(tur, "squares", lock))
+    t_circles = threading.Thread(target=draw_shape, args=(tur, "circles", lock))
+    t_triangles = threading.Thread(target=draw_shape, args=(tur, "triangles", lock))
+    t_rectangles = threading.Thread(target=draw_shape, args=(tur, "rectangles", lock))
+
+    #start threads
+    t_squares.start()
+    t_circles.start()
+    t_triangles.start()
+    t_rectangles.start()
+
+    #join threads
+    t_squares.join()
+    t_circles.join()
+    t_triangles.join()
+    t_rectangles.join()
+
 
     log.step_timer('All drawing commands have been created')
 
