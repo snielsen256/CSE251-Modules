@@ -111,7 +111,7 @@ def run():
         return
 
     # load dict
-    with open('data.txt') as f:
+    with open("data.txt") as f:
         data = f.read()
       
     # reconstructing the data as a dictionary
