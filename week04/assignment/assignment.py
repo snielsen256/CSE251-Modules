@@ -2,13 +2,15 @@
 Course: CSE 251
 Lesson Week: 04
 File: assignment.py
-Author: <Your name>
+Author: Stephen Nielsen
 
 Purpose: Assignment 04 - Factory and Dealership
 
 Instructions:
 
 - See I-Learn
+
+4 - All requirements met.
 
 """
 
@@ -76,10 +78,13 @@ class Queue251():
 class Factory(threading.Thread):
     """ This is a factory.  It will create cars and place them on the car queue """
 
-    def __init__(self):
-        # TODO, you need to add arguments that will pass all of data that 1 factory needs
+    def __init__(self, car_lot, sem_queue_access, sem_empty_remaining):
+        # TODO, you need to add arguments that will pass all of data that 1 factory needs.
         # to create cars and to place them in a queue.
-        pass
+        threading.Thread.__init__(self)
+        self.car_lot = car_lot
+        self.sem_queue_access = sem_queue_access
+        self.sem_empty_remaining = sem_empty_remaining
 
 
     def run(self):
@@ -89,19 +94,36 @@ class Factory(threading.Thread):
             create a car
             place the car on the queue
             signal the dealer that there is a car on the queue
-           """
+            """
+            # acquire
+            self.sem_queue_access.acquire()
+            # create car and put it in the car_lot
+            self.car_lot.put(Car())
+            # release
+            self.sem_empty_remaining.release()
+            
+
+
 
         # signal the dealer that there there are not more cars
-        pass
+        self.car_lot.put("FACTORY FINISHED")
+        # release
+        self.sem_empty_remaining.release()
 
 
 class Dealer(threading.Thread):
     """ This is a dealer that receives cars """
 
-    def __init__(self):
+    def __init__(self, car_lot, sem_queue_access, queue_stats, sem_empty_remaining):
         # TODO, you need to add arguments that pass all of data that 1 Dealer needs
         # to sell a car
-        pass
+        threading.Thread.__init__(self)
+        self.car_lot = car_lot
+        self.sem_queue_access = sem_queue_access
+        self.queue_stats = queue_stats
+        self.sem_empty_remaining = sem_empty_remaining
+        self.count = 0
+        
 
     def run(self):
         while True:
@@ -110,6 +132,24 @@ class Dealer(threading.Thread):
             take the car from the queue
             signal the factory that there is an empty slot in the queue
             """
+            # acquire
+            self.sem_empty_remaining.acquire()
+
+            # get car from car_lot, exit if finished
+            if self.car_lot.get() == "FACTORY FINISHED":
+                print("THERE ARE NO MORE CARS TO BE SOLD")
+                break
+            
+            # graph
+            self.queue_stats[self.car_lot.size()] += 1
+            # release
+            self.sem_queue_access.release()
+
+            # keep track of how many cars have been sold so far
+            self.count += 1
+            print(f"CAR NUMBER {self.count} HAS BEEN SOLD")
+
+
 
             # Sleep a little after selling a car
             # Last statement in this for loop - don't change
@@ -121,7 +161,15 @@ def main():
     log = Log(show_terminal=True)
 
     # TODO Create semaphore(s)
+    sem_queue_access = threading.Semaphore(MAX_QUEUE_SIZE) # if 0, queue is empty
+    sem_empty_remaining = threading.Semaphore(MAX_QUEUE_SIZE)# if 0, queue is full
+    
+    # set semaphores to register the queue as empty
+    for _ in range(0, MAX_QUEUE_SIZE):
+        sem_empty_remaining.acquire()
+
     # TODO Create queue251 
+    car_lot = Queue251()
     # TODO Create lock(s) ?
 
     # This tracks the length of the car queue during receiving cars by the dealership
@@ -129,14 +177,22 @@ def main():
     queue_stats = [0] * MAX_QUEUE_SIZE
 
     # TODO create your one factory
+    factory = Factory(car_lot, sem_queue_access, sem_empty_remaining)
 
     # TODO create your one dealership
+    dealer = Dealer(car_lot, sem_queue_access, queue_stats, sem_empty_remaining)
 
     log.start_timer()
 
     # TODO Start factory and dealership
+    factory.start()
+    dealer.start()
 
     # TODO Wait for factory and dealership to complete
+    factory.join()
+    print("FACTORY THREAD JOINED")
+    dealer.join()
+    print("DEALER THREAD JOINED")
 
     log.stop_timer(f'All {sum(queue_stats)} have been created')
 
