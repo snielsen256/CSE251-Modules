@@ -2,7 +2,7 @@
 Course: CSE 251
 Lesson Week: 07
 File: assingnment.py
-Author: <Your name here>
+Author: Stephen Nielsen
 Purpose: Process Task Files
 
 Instructions:  See I-Learn
@@ -54,6 +54,8 @@ def is_prime(n: int):
         i += 6
     return True
  
+# task functions
+
 def task_prime(value):
     """
     Use the is_prime() above
@@ -62,7 +64,12 @@ def task_prime(value):
             - or -
         {value} is not prime
     """
-    pass
+    global result_primes
+
+    if is_prime(value):
+        return(f"{value} is prime")
+    else:
+        return(f"{value} is not prime")
 
 def task_word(word):
     """
@@ -72,21 +79,48 @@ def task_word(word):
             - or -
         {word} not found *****
     """
-    pass
+    url = "words.txt"
+    word_found = False
+    global result_words
+
+    # look for word
+    with open(url) as file:
+        for line in file:
+            for file_word in line:
+                if file_word == word:
+                    word_found = True
+    
+    # finish
+    if word_found:
+        return(f"{word} found")
+    else:
+        return(f"{word} not found")
 
 def task_upper(text):
     """
     Add the following to the global list:
         {text} ==>  uppercase version of {text}
     """
-    pass
+    global result_upper
+
+    upper = str.upper(text)
+
+    return(f"{upper} ==>  uppercase version of {text}")
 
 def task_sum(start_value, end_value):
     """
     Add the following to the global list:
         sum of {start_value:,} to {end_value:,} = {total:,}
     """
-    pass
+    global result_sums
+    total = 0
+
+    # find sum
+    for i in range(start_value, end_value + 1):
+        total += i
+    
+    # return
+    return(f"sum of {start_value:,} to {end_value:,} = {total:,}")
 
 def task_name(url):
     """
@@ -96,18 +130,62 @@ def task_name(url):
             - or -
         {url} had an error receiving the information
     """
-    pass
+    global result_names
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return(f"{url} has name {response}")
+    else:
+        return(f"{url} had an error receiving the information")
+
+# callback functions
+
+def cb_prime(response):
+    global result_primes
+    result_primes.append(response)
+
+def cb_word(response):
+    global result_words
+    result_words.append(response)
+
+def cb_upper(response):
+    global result_upper
+    result_upper.append(response)
+
+def cb_sum(response):
+    global result_sums
+    result_sums.append(response)
+
+def cb_name(response):
+    global result_names
+    result_names.append(response)
 
 
 def main():
     log = Log(show_terminal=True)
     log.start_timer()
 
+    # constants
+    PRIME_PROCESS_COUNT = 2
+    WORD_PROCESS_COUNT = 2
+    UPPER_PROCESS_COUNT = 2
+    SUM_PROCESS_COUNT = 2
+    NAME_PROCESS_COUNT = 2
+
+
     # TODO Create process pools
+    prime_pool = mp.Pool(PRIME_PROCESS_COUNT)
+    word_pool = mp.Pool(WORD_PROCESS_COUNT)
+    upper_pool = mp.Pool(UPPER_PROCESS_COUNT)
+    sum_pool = mp.Pool(SUM_PROCESS_COUNT)
+    name_pool = mp.Pool(NAME_PROCESS_COUNT)
 
     # TODO you can change the following
     # TODO start and wait pools
     
+
+    # determine task type
     count = 0
     task_files = glob.glob("*.task")
     for filename in task_files:
@@ -118,18 +196,30 @@ def main():
         count += 1
         task_type = task['task']
         if task_type == TYPE_PRIME:
-            task_prime(task['value'])
+            prime_pool.apply_async(task_prime, args=(task['value'],), callback=cb_prime)
         elif task_type == TYPE_WORD:
-            task_word(task['word'])
+            word_pool.apply_async(task_word, args=(task['word'],), callback=cb_word)
         elif task_type == TYPE_UPPER:
-            task_upper(task['text'])
+            upper_pool.apply_async(task_upper, args=(task['text'],), callback=cb_upper)
         elif task_type == TYPE_SUM:
-            task_sum(task['start'], task['end'])
+            sum_pool.apply_async(task_sum, args=(task['start'], task['end']), callback=cb_sum)
         elif task_type == TYPE_NAME:
-            task_name(task['url'])
+            name_pool.apply_async(task_name, args=(task['url'],), callback=cb_name)
         else:
             log.write(f'Error: unknown task type {task_type}')
+    
+    # close and join pools
+    prime_pool.close()
+    word_pool.close()
+    upper_pool.close()
+    sum_pool.close()
+    name_pool.close()
 
+    prime_pool.join()
+    word_pool.join()
+    upper_pool.join()
+    sum_pool.join()
+    name_pool.join()
 
 
     # Do not change the following code (to the end of the main function)
