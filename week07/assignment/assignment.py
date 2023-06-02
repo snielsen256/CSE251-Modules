@@ -7,11 +7,16 @@ Purpose: Process Task Files
 
 Instructions:  See I-Learn
 
-TODO
-
 Add your comments here on the pool sizes that you used for your assignment and
 why they were the best choices.
 
+prime - med-high load - 2 processes  :  Must do calculations with big numbers, but ther eare no loops in the code.
+word -- high load ----- 3 processes  :  Nested for-loops make this program a higher load.
+upper - Very low load - 1 process    :  Simply adds to the ASCII values of each char.
+sum --- high load ----- 2 processes  :  Has a large number of iterations per loop.
+name -- medium load --- 2 processes  :  Makes a call to the server for each task.
+
+4 - all requirements met
 
 """
 
@@ -168,8 +173,8 @@ def main():
 
     # constants
     PRIME_PROCESS_COUNT = 2
-    WORD_PROCESS_COUNT = 2
-    UPPER_PROCESS_COUNT = 2
+    WORD_PROCESS_COUNT = 3
+    UPPER_PROCESS_COUNT = 1
     SUM_PROCESS_COUNT = 2
     NAME_PROCESS_COUNT = 2
 
