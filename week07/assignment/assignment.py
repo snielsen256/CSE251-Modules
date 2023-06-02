@@ -10,7 +10,7 @@ Instructions:  See I-Learn
 Add your comments here on the pool sizes that you used for your assignment and
 why they were the best choices.
 
-prime - med-high load - 2 processes  :  Must do calculations with big numbers, but ther eare no loops in the code.
+prime - med-high load - 2 processes  :  Must do calculations with big numbers, but there are no loops in the code.
 word -- high load ----- 3 processes  :  Nested for-loops make this program a higher load.
 upper - Very low load - 1 process    :  Simply adds to the ASCII values of each char.
 sum --- high load ----- 2 processes  :  Has a large number of iterations per loop.
