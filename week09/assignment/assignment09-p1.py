@@ -27,6 +27,16 @@ FAST_SPEED = 1
 speed = SLOW_SPEED
 
 # TODO add any functions
+def move_forward(maze, position, path):
+    possible_moves = Maze.get_possible_moves(maze, position[0], position[1])
+
+    if possible_moves == []:
+        # there is no way forward
+        pass
+    else
+        # there is at least one way forward
+        for move in possible_moves:
+            move_forward(maze, move, path)
 
 def solve_path(maze):
     """ Solve the maze and return the path found between the start and end positions.  
@@ -34,6 +44,8 @@ def solve_path(maze):
         
     # TODO start add code here
     path = []
+    start = [0, 0]
+    path = move_forward(maze, start, path)
     return path
 
 
