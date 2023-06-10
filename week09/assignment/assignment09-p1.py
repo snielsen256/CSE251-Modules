@@ -2,7 +2,7 @@
 Course: CSE 251 
 Lesson Week: 09
 File: assignment09-p1.py 
-Author: <Add name here>
+Author: Stephen Nielsen
 
 Purpose: Part 1 of assignment 09, finding a path to the end position in a maze
 
@@ -26,17 +26,42 @@ SLOW_SPEED = 100
 FAST_SPEED = 1
 speed = SLOW_SPEED
 
-# TODO add any functions
 def move_forward(maze, position, path):
-    possible_moves = Maze.get_possible_moves(maze, position[0], position[1])
+    row = position[0]
+    col = position[1]
+    possible_moves = maze.get_possible_moves(row, col)
 
-    if possible_moves == []:
-        # there is no way forward
-        pass
-    else
-        # there is at least one way forward
-        for move in possible_moves:
-            move_forward(maze, move, path)
+    # mark current position as visited
+    maze.restore(row, col)
+
+    # append position to path
+    path.append(position)
+
+    # check if finished
+    if maze.at_end(row, col):
+        #return True
+        return path
+    # check if dead end
+    if len(possible_moves) == 0:
+        return False
+    
+    #print(f"From {row}, {col} you can move to {possible_moves}")
+    
+    # go down each open path
+    for motion in possible_moves:
+
+        # check if movement is valid
+        if not maze.can_move_here(motion[0], motion[1]):
+            continue
+
+        # if path is not the correct path
+        correct_path = move_forward(maze, motion, path)
+        if not correct_path:
+            continue
+        else:
+            return path
+            
+                    
 
 def solve_path(maze):
     """ Solve the maze and return the path found between the start and end positions.  
@@ -44,7 +69,7 @@ def solve_path(maze):
         
     # TODO start add code here
     path = []
-    start = [0, 0]
+    start = maze.get_start_pos()
     path = move_forward(maze, start, path)
     return path
 
