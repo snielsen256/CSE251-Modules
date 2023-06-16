@@ -64,6 +64,41 @@ thread_count = 0
 stop = False
 speed = SLOW_SPEED
 
+def move_forward(maze, position, path):
+    row = position[0]
+    col = position[1]
+    possible_moves = maze.get_possible_moves(row, col)
+
+    # mark current position as visited
+    maze.restore(row, col)
+
+    # append position to path
+    path.append(position)
+
+    # check if finished
+    if maze.at_end(row, col):
+        #return True
+        return path
+    # check if dead end
+    if len(possible_moves) == 0:
+        return False
+    
+    #print(f"From {row}, {col} you can move to {possible_moves}")
+    
+    # go down each open path
+    for motion in possible_moves:
+
+        # check if movement is valid
+        if not maze.can_move_here(motion[0], motion[1]):
+            continue
+
+        # if path is not the correct path
+        correct_path = move_forward(maze, motion, path)
+        if not correct_path:
+            continue
+        else:
+            return path
+
 def get_color():
     """ Returns a different color when called """
     global current_color_index
@@ -80,7 +115,10 @@ def solve_find_end(maze):
     stop = False
 
 
-    pass
+    path = []
+    start = maze.get_start_pos()
+    path = move_forward(maze, start, path)
+    return path
 
 
 def find_end(log, filename, delay):
