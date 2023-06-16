@@ -65,12 +65,76 @@ import threading
 PHILOSOPHERS = 5
 MAX_MEALS = PHILOSOPHERS * 5
 
+class Waiter:
+    
+    def __init__(self):
+        pass
+    
+    def check_if_can_eat(philo_index):
+      """
+      returns True if both forks are available, False otherwise
+      """
+      pass
+
+def do_philosophy(self_index, meals, lock1, lock2, waiter):
+    """
+    The function called by the philosopher threads.
+    """
+
+    for i in range(5):
+        #determine who eats
+        #for i in range
+
+
+
+        """
+        lock1.acquire(timeout = 1)
+        lock2.acquire(timeout = 1)
+        eat(meals)
+        lock1.release()
+        lock2.release()
+        think()
+        """
+
+def eat(meals):
+    meals.acquire()
+
+def think():
+    pass
+        
 def main():
-    # TODO - create the waiter (A class would be best here)
-    # TODO - create the forks
-    # TODO - create PHILOSOPHERS philosophers
+    # create the meals
+    meals = threading.Semaphore(MAX_MEALS)
+    # create the waiter (A class would be best here)
+    waiter = Waiter()
+    # create the forks
+    fork_list = []
+    for _ in range(0, PHILOSOPHERS):
+        fork_list.append(threading.Lock())
+
+    # create PHILOSOPHERS philosophers
+    philo_list = []
+    for i in range(0, PHILOSOPHERS):
+        
+        #determine the forks
+        fork_index_1 = i
+        fork_index_2 = i + 1
+
+        if fork_index_2 == PHILOSOPHERS:
+          fork_index_2 = 0
+
+        # add philosopher to list
+        philo_list.append(threading.Thread(target=do_philosophy, args=(i+1, meals, fork_list[fork_index_1], fork_list[fork_index_2], waiter)))
+
     # TODO - Start them eating and thinking
+    for i in range(0, len(philo_list)):
+        philo_list[i].start()
+    
+    for i in range(0, len(philo_list)):
+        philo_list[i].join()
+
     # TODO - Display how many times each philosopher ate
+    print("finished")
 
     pass
 
