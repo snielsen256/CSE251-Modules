@@ -77,6 +77,7 @@ def move_forward(maze, position, lock, color):
     """
     print("------")
     global stop
+    global thread_count
     row = position[0]
     col = position[1]
     possible_moves = [] # the four spaces bordering the current position
@@ -137,6 +138,7 @@ def move_forward(maze, position, lock, color):
         # make threads
         for path in valid_moves:
             thread_list.append(threading.Thread(target=move_forward, args=(maze, path, lock, get_color())))
+            thread_count += 1
 
         # run threads
         for i in range(0, len(thread_list)):
