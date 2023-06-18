@@ -64,19 +64,25 @@ thread_count = 0
 stop = False
 speed = SLOW_SPEED
 
-def move_forward(maze, position, lock, color, response_list):
+def move_forward(maze, position, lock, color):
     """
     Returns an empty list if a dead end, or a list of valid moves if there is a split. 
-    Calls itelf if there is only one way forward.
+    Calls itself if there is only one way forward.
     """
     print("------")
     global stop
     row = position[0]
     col = position[1]
-    possible_moves = []
-    valid_moves = []
+    possible_moves = [] # the four spaces bordering the current position
+    valid_moves = [] # possible_moves, except only containing the positions that can actually be moved to
+    thread_list = []
+
+    # stop if the end has been found
+    if stop:
+        return
 
     # Critical sections - do the actions that require access to the maze ----------------
+    # Having multiple locked sections instead of one big one should help to prevent starvation
     with lock:
         # get possible moves
         print("Analyzing surroundings")
@@ -85,7 +91,14 @@ def move_forward(maze, position, lock, color, response_list):
     with lock:    
         # mark current position as visited
         print("Marking territory")
-        maze.move(row, col, color)
+        """
+        The if statement prevents an error message.
+        Without the if statement and it's contents, the first position of each new thread would go uncolored.
+        Removing the if statement and just calling move() results in an error message every time the 
+        thread tries to color the position where it's previous recursion colored ahead.
+        """
+        if maze.can_move_here(row, col):
+            maze.move(row, col, color)
          
     with lock: 
         # check if finished
@@ -106,28 +119,36 @@ def move_forward(maze, position, lock, color, response_list):
     
     # end of critical sections ----------------------------------------------------------
     
-    print(f"Response_list from thread's perspective - before change: {response_list}")
-    
     # make decision based on length of valid_moves
     if len(valid_moves) == 0:
-        # dead end
+        # location: dead end **************************
         print(f"There is no way forward: {valid_moves}")
         return
     elif len(valid_moves) > 1:
-        # split
+        # location: split ******************************
         print(f"The path is uncertain: {valid_moves}")
-        for move_index in range(len(valid_moves)):
-            response_list[move_index] = valid_moves[move_index]
-        print(f"Response_list from thread's perspective - after change: {response_list}")
+
+        # make threads
+        for path in valid_moves:
+            thread_list.append(threading.Thread(target=move_forward, args=(maze, path, lock, get_color())))
+
+        # run threads
+        for i in range(0, len(thread_list)):
+            thread_list[i].start()
+        
+        # join threads
+        for i in range(0, len(thread_list)):
+            thread_list[i].join()
+
         return
     else:
-        # only one way forward
+        # location: only one way forward ***************
         print(f"The way is clear: {valid_moves}")
         # critical section --------------------------------------------------------------
         with lock:
             maze.move(valid_moves[0][0], valid_moves[0][1], color)
         # end of critical section -------------------------------------------------------
-        move_forward(maze, valid_moves[0], lock, color, response_list)
+        move_forward(maze, valid_moves[0], lock, color)
         return
         
 def get_color():
@@ -144,59 +165,12 @@ def solve_find_end(maze):
     # When one of the threads finds the end position, stop all of them
     global stop
     stop = False
-    thread_list = []
-    responses = [None]*3
-    responses_secondary = [None]*3 # "responses_secondary" allows for an empty "responses" list to be given to the threads called using the data from "responses"
 
     # create lock
     lock = threading.Lock()
 
-    # make first thread
-    thread_list.append(threading.Thread(target=move_forward, args=(maze, maze.get_start_pos(), lock, get_color(), responses)))
-    print(thread_list)
-
-    #while not stop:
-    for _ in range(0, 3):
-        # clear responses list 
-        responses = [None]*3
-        responses_secondary = [None]*3
-
-        # start all threads in thread_list
-        print("Starting threads")
-        for i in range(0, len(thread_list)):
-            thread_list[i].start()
-        
-        print("Joining threads")
-        # join the threads and get the return lists
-        for i in range(0, len(thread_list)):
-            thread_list[i].join()
-
-        # clear thread_list
-        thread_list = []
-
-        print(f"pre-shift responses:{responses}")
-        print(f"pre-shift responses_secondary:{responses_secondary}")
-        
-        # transfer data from responses to responses_secondary
-        for move_index in range(len(responses)):
-            responses_secondary[move_index] = responses[move_index]
-
-        # clear responses list, just in case 
-        responses = [None]*3
-
-        print(f"post-shift responses:{responses}")
-        print(f"post-shift responses_secondary:{responses_secondary}")
-
-        # if the new threads split, make a new thread for each direction
-        for direction_set in responses_secondary:
-            if direction_set is None:
-                continue
-            else:
-                for motion in direction_set:
-                    if motion is None:
-                        continue
-                    else:
-                        thread_list.append(threading.Thread(target=move_forward, args=(maze, motion, lock, get_color(), responses)))
+    # make first function call
+    move_forward(maze, maze.get_start_pos(), lock, get_color()) 
 
 def find_end(log, filename, delay):
     """ Do not change this function """
