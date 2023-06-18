@@ -18,11 +18,17 @@ change the program to display the found path to the exit position.
 
 What would be your strategy?  
 
-<Answer here>
+-- For each new thread created, pass the history of it's parent thread to it. 
+For this to work, the history must be passed by value, not by reference.
 
 Why would it work?
 
-<Answer here>
+-- Every thread has it's own history, which includes the history of it's parent. 
+By the time a thread is halted, every thread has it's own version of the "path".The 
+thread that makes it to the maze's end has the "true path", which is what is ultimatley 
+passed back to solve_find_end() when the maze is finished. If the history was passed by 
+reference, then every thread would either try to overwrite the other's history, or the 
+"true path" would appear to include every space any thread ever went to.
 
 """
 import math
