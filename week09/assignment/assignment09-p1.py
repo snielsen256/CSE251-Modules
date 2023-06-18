@@ -10,6 +10,8 @@ Instructions:
 - Do not create classes for this assignment, just functions.
 - Do not use any other Python modules other than the ones included.
 
+4 - all requirements met
+
 """
 import math
 from screen import Screen

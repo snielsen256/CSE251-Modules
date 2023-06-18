@@ -30,6 +30,8 @@ passed back to solve_find_end() when the maze is finished. If the history was pa
 reference, then every thread would either try to overwrite the other's history, or the 
 "true path" would appear to include every space any thread ever went to.
 
+4 - all requirements met
+
 """
 import math
 import threading 
