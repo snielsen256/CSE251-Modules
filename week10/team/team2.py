@@ -17,7 +17,8 @@ import os
 def reverse_file(filename):
     """ Display a file in reverse order using a mmap file. """
     # TODO add code here
-    pass
+    with open(filename) as file:
+        pass
 
 
 # -----------------------------------------------------------------------------
