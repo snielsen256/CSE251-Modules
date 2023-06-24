@@ -2,7 +2,7 @@
 Course: CSE 251
 Lesson Week: 10
 File: assignment.py
-Author: <your name>
+Author: Stephen Nielsen
 
 Purpose: assignment for week 10 - reader writer problem
 
@@ -55,6 +55,18 @@ Instructions:
 
 Add any comments for me:
 
+This key is repeated several times in the code:
+  variables stored in buffer:
+      buffer[-1]: read_count - keeps track of how many have been read
+      -2:         A countdown of items to write
+      -3:         write_index
+      -4:         read_index
+      -5:         The total number of items to be written
+
+
+4- All requiremetns met
+
+
 """
 
 import random
@@ -64,6 +76,79 @@ import multiprocessing as mp
 BUFFER_SIZE = 10
 READERS = 2
 WRITERS = 2
+
+def write(buffer, writer_can_write, reader_can_read, lock):
+    """
+    writes to the buffer
+    """
+    """
+    variables stored in buffer:
+    buffer[-1]: read_count - keeps track of how many have been read
+    -2:         A countdown of items to write
+    -3:         write_index
+    -4:         read_index
+    -5:         The total number of items to be written
+    """
+    
+    while buffer[-2] > 0: # while item_count > 0
+        # comfirm writing is possible
+        writer_can_write.acquire()
+
+        # write
+        with lock:
+            buffer[buffer[-3]] = random.randint(1000, 10000)
+
+            # decrement item_count
+            buffer[-2] -= 1
+
+            # move write_index forward
+            buffer[-3] += 1
+
+            # loop write_index around if at last point
+            if buffer[-3] == len(buffer) - (1 + 5): # 1 becasue the list starts at 0, 5 because there are 5 variables in the buffer 
+                buffer[-3] = 0
+
+        # indicate that reading is possible
+        reader_can_read.release()
+
+def read(buffer, writer_can_write, reader_can_read, lock):
+    """
+    reads from the buffer
+    """
+    """
+    variables stored in buffer:
+    buffer[-1]: read_count - keeps track of how many have been read
+    -2:         A countdown of items to write
+    -3:         write_index
+    -4:         read_index
+    -5:         The total number of items to be written
+    """
+    
+    while buffer[-1] < buffer[-5]:
+        # confirm reading is possible
+        reader_can_read.acquire()
+
+        # read
+        with lock:       
+            if buffer[-1] >= buffer[-5]:
+                break         
+
+            #print(f"{buffer[-1]} of {buffer[-5]}: {buffer[buffer[-4]]}")
+            print(buffer[buffer[-4]])
+
+            # record as read
+            buffer[-1] += 1
+
+            # move read_index forward
+            buffer[-4] += 1
+
+            # loop write_index around if at last point
+            if buffer[-4] == len(buffer) - (1 + 5): # 1 becasue the list starts at 0, 5 because there are 5 variables in the buffer
+                buffer[-4] = 0
+
+            # indicate that overwriting is ok
+            writer_can_write.release()
+    
 
 def main():
 
@@ -83,19 +168,55 @@ def main():
     #        You can add another value to the sharedable list to keep
     #        track of the number of values received by the readers.
     #        (ie., [0] * (BUFFER_SIZE + 4))
+    
+    """
+    variables stored in buffer:
+    buffer[-1]: read_count - keeps track of how many have been read
+    -2:         A countdown of items to write
+    -3:         write_index
+    -4:         read_index
+    -5:         The total number of items to be written
+    """
+    buffer = smm.ShareableList([0]*(BUFFER_SIZE + 4))
+    buffer[-2] = items_to_send
+    buffer[-5] = items_to_send
 
-    # TODO - Create any lock(s) or semaphore(s) that you feel you need
+    # Create any lock(s) or semaphore(s) that you feel you need
+    """
+    Whenever write_index moves forward, reader_can_read is incremented and writer_can_write is decremented.
+    Whenever read_index moves forward, reader_can read in decremented and writer_can_write is incremented.
+    This ensures that the reader never surpasses the writer, and the writer never overwrites values that haven't been read.
+    Semaphores should be checked before the index is moved.
+    """
+    lock = mp.Lock()
+    reader_can_read = mp.Semaphore(0)
+    writer_can_write = mp.Semaphore(BUFFER_SIZE)
 
-    # TODO - create reader and writer processes
+    # create reader and writer processes
+    process_list = []
+    
+    for _ in range(WRITERS):
+        process_list.append(mp.Process(target=write, args=(buffer, writer_can_write, reader_can_read, lock)))
 
-    # TODO - Start the processes and wait for them to finish
+    for _ in range(READERS):
+        process_list.append(mp.Process(target=read, args=(buffer, writer_can_write, reader_can_read, lock)))
+
+    # Start the processes and wait for them to finish
+    for process in process_list:
+        process.start()
+
+    for process in process_list:
+        process.join()
+    
 
     print(f'{items_to_send} values sent')
 
-    # TODO - Display the number of numbers/items received by the reader.
+    # Display the number of numbers/items received by the reader.
     #        Can not use "items_to_send", must be a value collected
     #        by the reader processes.
     # print(f'{<your variable>} values received')
+
+    print(f'{buffer[-1]} values received')
 
     smm.shutdown()
 
