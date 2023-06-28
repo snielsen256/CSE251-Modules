@@ -29,7 +29,12 @@ Part 3:
 import java.util.Random; 
 import java.lang.Math; 
 
+class prime_thread extends Thread {
+}
+
 class Main {
+
+
 
   static boolean isPrime(int n) 
   { 
@@ -49,25 +54,32 @@ class Main {
   }
 
   public static void main(String[] args) {
-    System.out.println("Hello world!");
+    //System.out.println("Hello world!");
 
     // create instance of Random class 
-    Random rand = new Random(); 
+    // Random rand = new Random(); 
 
-    int count = 1000;
-    int[] array = new int[count];
-    for (int i = 0; i < count; i++) 
-    {
-      array[i] = Math.abs(rand.nextInt());
+    // int count = 1000;
+    // int[] array = new int[count];
+    // for (int i = 0; i < count; i++) 
+    // {
+    //   array[i] = Math.abs(rand.nextInt());
+    // }
+
+    // create threads
+    int thread_count = 4;
+    for (int i=0; i<thread_count; i++){
+      current_thread object = new prime_thread();
+      current_thread.start();
     }
 
   // TODO - this is just sample code. you can remove it.
-    for (int i = 0; i < count; i++) 
-    {
-      if (isPrime(array[i]))
-      {
-        System.out.println(array[i]);
-      }
-    }
+    // for (int i = 0; i < count; i++) 
+    // {
+    //   if (isPrime(array[i]))
+    //   {
+    //     System.out.println(array[i]);
+    //   }
+    // }
   }
 }
