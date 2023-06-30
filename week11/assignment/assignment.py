@@ -2,6 +2,8 @@
 Course: CSE 251
 Lesson Week: 11
 File: Assignment.py
+
+4 - All requirements met
 """
 
 import time
@@ -47,13 +49,25 @@ def cleaner(index, counter, start_time, party_lock, cleaning_lock):
     while (time.time() - start_time) <= TIME:
         # wait
         cleaner_waiting()
-        # get access to room
-        if not party_lock.locked() and not cleaning_lock.locked():# if party not active and there isn't someone already cleaning
-            cleaning_lock.acquire()
-            print(STARTING_CLEANING_MESSAGE)
-            counter.value += 1 # increment counter
 
-        # party
+        # check if party is active
+        room_is_available = party_lock.acquire(False)
+        if room_is_available:
+            party_lock.release()
+        else:
+            continue
+
+        # check if there is already a cleaner in the room
+        room_is_empty = cleaning_lock.acquire(False)
+        if room_is_empty:
+            # continue on to the rest of the loop
+            pass
+        else:
+            continue
+        
+        # clean
+        print(STARTING_CLEANING_MESSAGE)
+        counter.value += 1 # increment counter
         cleaner_cleaning(index)
 
         # leave
@@ -72,15 +86,23 @@ def guest(index, counter, start_time, party_lock, cleaning_lock, active_guests):
     while (time.time() - start_time) <= TIME:
         # wait
         guest_waiting()
-        # get access to room
-        if not cleaning_lock.locked():# if room not being cleaned
-            if not party_lock.locked(): # if the first one in the room
-                party_lock.acquire()
-                print(STARTING_PARTY_MESSAGE)
-                counter.value += 1 # increment counter
 
-            # increment 
-            active_guests.value += 1
+        #check if not being cleaned
+        is_not_being_cleaned = cleaning_lock.acquire(False)
+        if is_not_being_cleaned:
+            cleaning_lock.release()
+        else:
+            continue
+
+        # check if party is active
+        # NOTE -- at this point in the loop, it is assumed that the room is not being cleaned
+        is_first_to_party = party_lock.acquire(False)
+        if is_first_to_party:
+            print(STARTING_PARTY_MESSAGE)
+            counter.value += 1 # increment party counter
+        
+        # increment the number of active guests, regardless if they are the first or not
+        active_guests.value += 1
 
         # party
         guest_partying(index, active_guests.value)
@@ -89,7 +111,7 @@ def guest(index, counter, start_time, party_lock, cleaning_lock, active_guests):
         active_guests.value -= 1
 
         # display message if last
-        if active_guests <= 0:
+        if active_guests.value <= 0:
             party_lock.release()
             print(STOPPING_PARTY_MESSAGE)
         
@@ -98,7 +120,7 @@ def main():
     # Start time of the running of the program. 
     start_time = time.time()
 
-    # TODO - add any variables, data structures, processes you need
+    # add any variables, data structures, processes you need
     cleaner_list = []
     guest_list = []
     party_lock = mp.Lock() # this is the "light switch"
@@ -108,7 +130,7 @@ def main():
     party_count = mp.Value("i", 0)
 
 
-    # TODO - add any arguments to cleaner() and guest() that you need
+    # add any arguments to cleaner() and guest() that you need
     for index in range(1, CLEANING_STAFF):
         cleaner_list.append(mp.Process(target=cleaner, args=(index, cleaned_count, start_time, party_lock, cleaning_lock)))
 
