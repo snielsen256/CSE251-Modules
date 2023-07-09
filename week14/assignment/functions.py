@@ -43,7 +43,11 @@ You will lose 10% if you don't detail your part 1 and part 2 code below
 
 Describe how to speed up part 1
 
-<Add your comments here>
+    My first working DFS took around 68 seconds, which is about the time it 
+    would take for 64 families to make 4 batches of concurrent server calls. 
+    By making making the husband and wife function calls into their own threads 
+    and running them together (in recursive_threads) I cut this time down to 
+    just under 8 seconds.
 
 
 Describe how to speed up part 2
@@ -93,7 +97,11 @@ def depth_fs_pedigree(family_id, tree):
         tree.add_person(Person(person_json))
 
     
-    # HUSBAND -----------------------------------------------
+    # make recursive calls --------------------------
+    recursive_threads = []
+
+    
+    # HUSBAND ---------
 
     # get husband's id 
     husband_id = family_request.get_response()['husband_id']
@@ -104,10 +112,12 @@ def depth_fs_pedigree(family_id, tree):
     husband_parent_id = husband_request.get_response()['parent_id']
     # make recursive call with husband's parent ID
     if husband_parent_id is not None:
-        depth_fs_pedigree(husband_parent_id, tree)
+        recursive_threads.append(threading.Thread(target=depth_fs_pedigree, args=(husband_parent_id, tree)))
+    
+    # end husband -------------
 
 
-    # WIFE -----------------------------------------------
+    # WIFE ----------
 
     # get wife's id 
     wife_id = family_request.get_response()['wife_id']
@@ -118,7 +128,16 @@ def depth_fs_pedigree(family_id, tree):
     wife_parent_id = wife_request.get_response()['parent_id']
     # make recursive call with wife's parent ID
     if wife_parent_id is not None:
-        depth_fs_pedigree(wife_parent_id, tree)
+        recursive_threads.append(threading.Thread(target=depth_fs_pedigree, args=(wife_parent_id, tree)))
+
+    # end wife ---------------
+    
+    # do recursive threads
+    for rt in recursive_threads:
+        rt.start()
+    for rt in recursive_threads:
+        rt.join()
+
 
     
 
