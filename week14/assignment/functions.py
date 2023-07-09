@@ -47,7 +47,10 @@ Describe how to speed up part 1
     would take for 64 families to make 4 batches of concurrent server calls. 
     By making making the husband and wife function calls into their own threads 
     and running them together (in recursive_threads) I cut this time down to 
-    just under 8 seconds.
+    just under 8 seconds. Since the data-gathering parts for both husband and 
+    wife included server calls, I decided to put them in their own functions 
+    (husband() and wife()) and run them in parallel threads. This took about 
+    another second off the DFS time.
 
 
 Describe how to speed up part 2
@@ -102,35 +105,44 @@ def depth_fs_pedigree(family_id, tree):
 
     
     # HUSBAND ---------
+    def husband(recursive_threads):
 
-    # get husband's id 
-    husband_id = family_request.get_response()['husband_id']
-    # get husband's parent id
-    husband_request = Request_thread(f'{TOP_API_URL}/person/{husband_id}')
-    husband_request.start()
-    husband_request.join()
-    husband_parent_id = husband_request.get_response()['parent_id']
-    # make recursive call with husband's parent ID
-    if husband_parent_id is not None:
-        recursive_threads.append(threading.Thread(target=depth_fs_pedigree, args=(husband_parent_id, tree)))
+        # get husband's id 
+        husband_id = family_request.get_response()['husband_id']
+        # get husband's parent id
+        husband_request = Request_thread(f'{TOP_API_URL}/person/{husband_id}')
+        husband_request.start()
+        husband_request.join()
+        husband_parent_id = husband_request.get_response()['parent_id']
+        # make recursive call with husband's parent ID
+        if husband_parent_id is not None:
+            recursive_threads.append(threading.Thread(target=depth_fs_pedigree, args=(husband_parent_id, tree)))
     
     # end husband -------------
 
 
     # WIFE ----------
-
-    # get wife's id 
-    wife_id = family_request.get_response()['wife_id']
-    # get wife's parent id
-    wife_request = Request_thread(f'{TOP_API_URL}/person/{wife_id}')
-    wife_request.start()
-    wife_request.join()
-    wife_parent_id = wife_request.get_response()['parent_id']
-    # make recursive call with wife's parent ID
-    if wife_parent_id is not None:
-        recursive_threads.append(threading.Thread(target=depth_fs_pedigree, args=(wife_parent_id, tree)))
+    def wife(recursive_threads):
+        # get wife's id 
+        wife_id = family_request.get_response()['wife_id']
+        # get wife's parent id
+        wife_request = Request_thread(f'{TOP_API_URL}/person/{wife_id}')
+        wife_request.start()
+        wife_request.join()
+        wife_parent_id = wife_request.get_response()['parent_id']
+        # make recursive call with wife's parent ID
+        if wife_parent_id is not None:
+            recursive_threads.append(threading.Thread(target=depth_fs_pedigree, args=(wife_parent_id, tree)))
 
     # end wife ---------------
+
+    # call husband and wife functions
+    h_thread = threading.Thread(target=husband, args=(recursive_threads,))
+    w_thread = threading.Thread(target=wife, args=(recursive_threads,))
+    h_thread.start()
+    w_thread.start()
+    h_thread.join()
+    w_thread.join()
     
     # do recursive threads
     for rt in recursive_threads:
