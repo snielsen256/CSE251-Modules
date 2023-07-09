@@ -1,7 +1,7 @@
 """
 Course: CSE 251, week 14
 File: functions.py
-Author: <your name>
+Author: Stephen Nielsen
 
 Instructions:
 
@@ -65,7 +65,63 @@ def depth_fs_pedigree(family_id, tree):
     # TODO - implement Depth first retrieval
     # TODO - Printing out people and families that are retrieved from the server will help debugging
 
-    pass
+    # get family JSON
+    family_request = Request_thread(f'{TOP_API_URL}/family/{family_id}')
+    family_request.start()
+    family_request.join()
+
+
+    # create family and add family to tree
+    tree.add_family(Family(family_request.get_response()))
+
+    
+    # get people JSON
+    people_requests = []
+    people_requests.append(Request_thread(f'{TOP_API_URL}/person/{family_request.get_response()["husband_id"]}')) # husband
+    people_requests.append(Request_thread(f'{TOP_API_URL}/person/{family_request.get_response()["wife_id"]}'))    # wife
+    for child_id in family_request.get_response()["children"]: # children
+        people_requests.append(Request_thread(f'{TOP_API_URL}/person/{child_id}'))
+
+    for i in people_requests:
+        i.start()
+    for i in people_requests:
+        i.join()
+
+    # create people, add people to tree
+    for person_thread in people_requests:
+        person_json = person_thread.get_response()
+        tree.add_person(Person(person_json))
+
+    
+    # HUSBAND -----------------------------------------------
+
+    # get husband's id 
+    husband_id = family_request.get_response()['husband_id']
+    # get husband's parent id
+    husband_request = Request_thread(f'{TOP_API_URL}/person/{husband_id}')
+    husband_request.start()
+    husband_request.join()
+    husband_parent_id = husband_request.get_response()['parent_id']
+    # make recursive call with husband's parent ID
+    if husband_parent_id is not None:
+        depth_fs_pedigree(husband_parent_id, tree)
+
+
+    # WIFE -----------------------------------------------
+
+    # get wife's id 
+    wife_id = family_request.get_response()['wife_id']
+    # get wife's parent id
+    wife_request = Request_thread(f'{TOP_API_URL}/person/{wife_id}')
+    wife_request.start()
+    wife_request.join()
+    wife_parent_id = wife_request.get_response()['parent_id']
+    # make recursive call with wife's parent ID
+    if wife_parent_id is not None:
+        depth_fs_pedigree(wife_parent_id, tree)
+
+    
+
 
 # -----------------------------------------------------------------------------
 def breadth_fs_pedigree(family_id, tree):
