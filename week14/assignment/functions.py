@@ -76,8 +76,6 @@ import queue
 
 # -----------------------------------------------------------------------------
 def depth_fs_pedigree(family_id, tree):
-    pass
-    """
     # KEEP this function even if you don't implement it
     # TODO - implement Depth first retrieval
     # TODO - Printing out people and families that are retrieved from the server will help debugging
@@ -159,9 +157,6 @@ def depth_fs_pedigree(family_id, tree):
         rt.start()
     for rt in recursive_threads:
         rt.join()
-
-
-"""
 
 
 # -----------------------------------------------------------------------------
