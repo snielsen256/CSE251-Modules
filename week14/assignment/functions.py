@@ -65,7 +65,10 @@ Describe how to speed up part 2
 
 Extra (Optional) 10% Bonus to speed up part 3
 
-<Add your comments here>
+    Part 3 is the same as part 2, but with 2 main changes. The first is that 
+    thread_list is limited to 5 threads. Secondly, add_to_tree() and process() 
+    no longer run threads in parallel. This makes sure that the number of server 
+    calls is controlled by the length of thread_list.
 
 
 4 - All requirements met
@@ -76,6 +79,7 @@ import queue
 
 # -----------------------------------------------------------------------------
 def depth_fs_pedigree(family_id, tree):
+    pass
     # KEEP this function even if you don't implement it
     # TODO - implement Depth first retrieval
     # TODO - Printing out people and families that are retrieved from the server will help debugging
@@ -164,7 +168,7 @@ def breadth_fs_pedigree(family_id, tree):
     # KEEP this function even if you don't implement it
     # TODO - implement breadth first retrieval
     # TODO - Printing out people and families that are retrieved from the server will help debugging
-
+    pass
     family_queue = queue.Queue()
 
     def add_to_tree(family_JSON, tree):
@@ -265,4 +269,94 @@ def breadth_fs_pedigree_limit5(family_id, tree):
     #      - Limit number of concurrent connections to the FS server to 5
     # TODO - Printing out people and families that are retrieved from the server will help debugging
 
-    pass
+    family_queue = queue.Queue()
+
+    def add_to_tree(family_JSON, tree):
+        """
+        Adds a family and it's people to the tree.
+        This code is mostly copied from depth_fs_pedigree().
+        Contains 1 batches of server calls.
+        """
+
+        # create family and add family to tree
+        tree.add_family(Family(family_JSON))
+
+        
+        # get people JSON
+        people_requests = []
+        people_requests.append(Request_thread(f'{TOP_API_URL}/person/{family_JSON["husband_id"]}')) # husband
+        people_requests.append(Request_thread(f'{TOP_API_URL}/person/{family_JSON["wife_id"]}'))    # wife
+        for child_id in family_JSON["children"]: # children
+            people_requests.append(Request_thread(f'{TOP_API_URL}/person/{child_id}'))
+
+        for i in people_requests:
+            i.start()
+            i.join()
+            
+
+        # create people, add people to tree
+        for person_thread in people_requests:
+            person_json = person_thread.get_response()
+            tree.add_person(Person(person_json))
+
+    def process(item, family_queue):
+            """
+            Adds the family to the tree and adds the parent IDs 
+            of the husband and wife to the queue. Item is the input, 
+            family_queue is the output. Having item as a seperate 
+            parameter may seem redundant, but calling queue.get() 
+            allows for the batch loop to execute properly when calling process().
+            """
+
+            # add family to tree, and get the JSON
+            # get family JSON
+            family_request = Request_thread(f'{TOP_API_URL}/family/{item}')
+            family_request.start()
+            family_request.join()
+            family_JSON = family_request.get_response()
+
+            tree_thread = threading.Thread(add_to_tree(family_JSON, tree))
+            tree_thread.start()
+            tree_thread.join()
+
+            # get husband's id 
+            husband_id = family_JSON['husband_id']
+            # get wife's id 
+            wife_id = family_JSON['wife_id']
+
+            # get husband's and wife's parent id
+            husband_request = Request_thread(f'{TOP_API_URL}/person/{husband_id}')
+            wife_request = Request_thread(f'{TOP_API_URL}/person/{wife_id}')
+            husband_request.start()
+            husband_request.join()
+            wife_request.start()
+            wife_request.join()
+
+            husband_parent_id = husband_request.get_response()['parent_id']
+            wife_parent_id = wife_request.get_response()['parent_id']
+            
+            # put parent IDs in queue
+            if husband_parent_id is not None:
+                family_queue.put(husband_parent_id)
+
+            if wife_parent_id is not None:
+                family_queue.put(wife_parent_id)
+            
+            
+
+
+    # add root to queue
+    family_queue.put(family_id)
+
+    # loop start    
+    while not family_queue.empty():
+        # beginning of batch
+        thread_list = []
+        while (not family_queue.empty()) and len(thread_list) < 5:
+            thread_list.append(threading.Thread(target=process, args=(family_queue.get(), family_queue))) 
+
+        # do threads
+        for t in thread_list:
+            t.start()
+        for t in thread_list:
+            t.join()
