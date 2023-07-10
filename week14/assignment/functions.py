@@ -57,7 +57,10 @@ Describe how to speed up part 1
 Describe how to speed up part 2
 
     My first sucessful attempt took one item from the queue at a time, and took 
-    about 53 seconds.
+    about 53 seconds. I then split the tree into batches. After each batch, 
+    every item in the queue would be made into a thread, and each thread would 
+    add more items to the queue. This resulted in a time of anywhere from 8-9.9 
+    seconds, but never over 10. 
 
 
 Extra (Optional) 10% Bonus to speed up part 3
@@ -234,24 +237,38 @@ def breadth_fs_pedigree(family_id, tree):
         if wife_parent_id is not None:
             family_queue.put(wife_parent_id)
 
+    def process(item, family_queue):
+
+            # add family to tree
+            family_request = add_to_tree(item, tree)
+
+            # add husband's and wife's family to queue
+            h_thread = threading.Thread(target=husband, args=(family_queue, family_request))
+            w_thread = threading.Thread(target=wife, args=(family_queue, family_request))
+            h_thread.start()
+            w_thread.start()
+            h_thread.join()
+            w_thread.join()
+
 
     # add root to queue
     family_queue.put(family_id)
 
-    # loop start
+    
+    # loop start  
+    # beginning of batch
     while not family_queue.empty():
+        thread_list = []
+        while not family_queue.empty():
+            thread_list.append(threading.Thread(target=process, args=(family_queue.get(), family_queue)))
+    
+        # do threads
+        for t in thread_list:
+            t.start()
+        for t in thread_list:
+            t.join()
 
-        # add family to tree
-        family_request = add_to_tree(family_queue.get(), tree)
-
-        # add husband's and wife's family to queue
-        h_thread = threading.Thread(target=husband, args=(family_queue, family_request))
-        w_thread = threading.Thread(target=wife, args=(family_queue, family_request))
-        h_thread.start()
-        w_thread.start()
-        h_thread.join()
-        w_thread.join()
-
+        
 # -----------------------------------------------------------------------------
 def breadth_fs_pedigree_limit5(family_id, tree):
     # KEEP this function even if you don't implement it
