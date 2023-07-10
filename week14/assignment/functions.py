@@ -67,6 +67,9 @@ Extra (Optional) 10% Bonus to speed up part 3
 
 <Add your comments here>
 
+
+4 - All requirements met
+
 """
 from common import *
 import queue
@@ -74,7 +77,7 @@ import queue
 # -----------------------------------------------------------------------------
 def depth_fs_pedigree(family_id, tree):
     pass
-    #"""
+    """
     # KEEP this function even if you don't implement it
     # TODO - implement Depth first retrieval
     # TODO - Printing out people and families that are retrieved from the server will help debugging
@@ -158,7 +161,7 @@ def depth_fs_pedigree(family_id, tree):
         rt.join()
 
 
-#"""
+"""
 
 
 # -----------------------------------------------------------------------------
@@ -169,28 +172,22 @@ def breadth_fs_pedigree(family_id, tree):
 
     family_queue = queue.Queue()
 
-    def add_to_tree(family_id, tree):
+    def add_to_tree(family_JSON, tree):
         """
         Adds a family and it's people to the tree.
         This code is mostly copied from depth_fs_pedigree().
-        Contains 2 batches of server calls.
+        Contains 1 batches of server calls.
         """
 
-        # get family JSON
-        family_request = Request_thread(f'{TOP_API_URL}/family/{family_id}')
-        family_request.start()
-        family_request.join()
-
-
         # create family and add family to tree
-        tree.add_family(Family(family_request.get_response()))
+        tree.add_family(Family(family_JSON))
 
         
         # get people JSON
         people_requests = []
-        people_requests.append(Request_thread(f'{TOP_API_URL}/person/{family_request.get_response()["husband_id"]}')) # husband
-        people_requests.append(Request_thread(f'{TOP_API_URL}/person/{family_request.get_response()["wife_id"]}'))    # wife
-        for child_id in family_request.get_response()["children"]: # children
+        people_requests.append(Request_thread(f'{TOP_API_URL}/person/{family_JSON["husband_id"]}')) # husband
+        people_requests.append(Request_thread(f'{TOP_API_URL}/person/{family_JSON["wife_id"]}'))    # wife
+        for child_id in family_JSON["children"]: # children
             people_requests.append(Request_thread(f'{TOP_API_URL}/person/{child_id}'))
 
         for i in people_requests:
@@ -203,21 +200,29 @@ def breadth_fs_pedigree(family_id, tree):
             person_json = person_thread.get_response()
             tree.add_person(Person(person_json))
 
-        return family_request.get_response()
-
     def process(item, family_queue):
             """
-            Adds the family to the tree and 
-            adds the parent IDs of the husband and wife to the queue 
+            Adds the family to the tree and adds the parent IDs 
+            of the husband and wife to the queue. Item is the input, 
+            family_queue is the output. Having item as a seperate 
+            parameter may seem redundant, but calling queue.get() 
+            allows for the batch loop to execute properly when calling process().
             """
 
             # add family to tree, and get the JSON
-            family_request_JSON = add_to_tree(item, tree)
+            # get family JSON
+            family_request = Request_thread(f'{TOP_API_URL}/family/{item}')
+            family_request.start()
+            family_request.join()
+            family_JSON = family_request.get_response()
+
+            tree_thread = threading.Thread(add_to_tree(family_JSON, tree))
+            tree_thread.start() # joined at the end of the function
 
             # get husband's id 
-            husband_id = family_request_JSON['husband_id']
+            husband_id = family_JSON['husband_id']
             # get wife's id 
-            wife_id = family_request_JSON['wife_id']
+            wife_id = family_JSON['wife_id']
 
             # get husband's and wife's parent id
             husband_request = Request_thread(f'{TOP_API_URL}/person/{husband_id}')
@@ -236,6 +241,9 @@ def breadth_fs_pedigree(family_id, tree):
 
             if wife_parent_id is not None:
                 family_queue.put(wife_parent_id)
+            
+            # join tree_thread
+            tree_thread.join()
 
 
     # add root to queue
